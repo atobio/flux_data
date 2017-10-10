@@ -12,7 +12,7 @@ rm(list=ls())
 require(xlsx)
 
 #read in data
-setwd('/Users/Ana/Documents/siberia_data/dg_fluxes/')
+setwd('/Users/Ana/Documents/GitHub/flux_data/')
 fluxdata<- read.xlsx("final_fluxes.xlsx", sheetIndex=1, startRow=1, header=T)
 #spectra <- read.xlsx("spectra_final.xlsx", sheetIndex =1, startRow=1, header=T)
 
