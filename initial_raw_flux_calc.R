@@ -3,8 +3,7 @@
 # raw fluxes and calculate
 # co2 and h2o flux
 # 
-#
-# Ana Tobio 9/18/17
+
 
 
 rm(list=ls())
