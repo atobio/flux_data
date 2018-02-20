@@ -4,7 +4,7 @@ model{
 #likelihood 
 for(i in 1:Nobs){
   w.flux[i] ~ dnorm(mu.flux[i], tau.flux)
-  mu.flux[i] <- b.0[standID[i]] + b.1[standID[i]] * vpd[i]
+  mu.flux[i] <- b.0[standID[i]] + b.1[standID[i]] * VPD[i] + b.2[standID[i]] * pr.ave[i]
   w.rep[i] ~ dnorm(mu.flux[i], tau.flux)
 }
 
