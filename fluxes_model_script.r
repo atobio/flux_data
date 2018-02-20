@@ -11,6 +11,9 @@ library(rjags)
 library(coda)
 library(mcmcplots)
 library(lubridate)
+library(plot3D)
+library(rgl)
+library(scatterplot3d)
 #set directory
 #setwd("/Users/Ana/Documents/siberia_data/dg_fluxes")
 #read in data
@@ -36,6 +39,9 @@ datMDF2 <- read.csv("z:\\student_research\\tobio\\viperSensor\\met\\MDF2.csv")
 #check how many fluxes are in each stand
 f.count <- aggregate(fluxes$umol.h2o.m2.sec.1, by=list(fluxes$stand, fluxes$density), FUN="length")
 colnames(f.count) <- c("stand","density", "count")
+f.count$densityID <- ifelse(f.count$density == "h",1,
+                            ifelse(f.count$density == "m",2,
+                                   3))
 f.count$standID <- seq(1,dim(f.count)[1])
 #add stand id to the fluxes data
 fluxes2 <- join(fluxes, f.count, by=c("stand","density"), type="left")
@@ -102,8 +108,8 @@ datMet$VPD <- (datMet$e.sat-(datMetRHfix*datMet$e.sat))
 
 
 pre.v <- numeric(0)
-for(i in 7:dim(datAirP)[1]){
-  pre.v[i] <- sum(datAirP$Pr.mm[i:(i-7)])
+for(i in 5:dim(datAirP)[1]){
+  pre.v[i] <- sum(datAirP$Pr.mm[(i-1):(i-5)])
 }
 
 datAirP$Pr.ave <- pre.v
@@ -132,22 +138,36 @@ fluxes4 <- join(fluxes3, datAirP, by=c("doy","year"), type="left")
 #################plots!!#########################
 #################################################
 
-plot(fluxes4$VPD, fluxes4$umol.h2o.m2.sec.1)
+plot(log(fluxes4$VPD), fluxes4$umol.h2o.m2.sec.1)
 
-plot(fluxes4$Pr.ave, fluxes4$umol.h2o.m2.sec.1)
+cp <- rainbow(5)
+fluxes4$vpdcol <- ifelse(fluxes4$VPD <= 0.25, cp[1], 
+                         ifelse(fluxes4$VPD > 0.25 & fluxes4$VPD <= 0.5, cp[2],
+                                ifelse(fluxes4$VPD > 0.5 & fluxes4$VPD <= 0.75, cp[3],
+                                       ifelse(fluxes4$VPD > 0.75 & fluxes4$VPD <= 1.5, cp[4],
+                                             cp[5]))))
+plot(fluxes4$Pr.ave, fluxes4$umol.h2o.m2.sec.1, pch=19, col=fluxes4$vpdcol)
+legend(15, 8500, c(".25",".5",".75","1.5","3"), col=cp, pch = 19)
 
 
+scatter3D(log(fluxes4$VPD), fluxes4$Pr.ave, fluxes4$umol.h2o.m2.sec.1)
 
+plot(fluxes4$hour, fluxes4$umol.h2o.m2.sec.1,pch=19, col=fluxes4$vpdcol)
+legend(15, 8500, c(".25",".5",".75","1.5","3"), col=cp, pch = 19)
+plot(fluxes4$par, fluxes4$umol.h2o.m2.sec.1, pch=19, col=fluxes4$vpdcol)
+legend(15, 8500, c(".25",".5",".75","1.5","3"), col=cp, pch = 19)
+
+plot(fluxes4$hour, fluxes4$par)
 
 #############################################
 #####set up model run          ##############
 #############################################
 
 
-datalist <- list(Nobs=dim(fluxes4)[1], w.flux = fluxes4$umol.h2o.m2.sec.1, VPD = fluxes4$VPD, 
-                 standID = fluxes4$standID, Nstand=dim(f.count)[1], pr.ave = fluxes4$Pr.ave)
+datalist <- list(Nobs=dim(fluxes4)[1], w.flux = fluxes4$umol.h2o.m2.sec.1, VPD = fluxes4$VPD, par = fluxes4$par,
+                 densityID = fluxes4$densityID, Ndensity=3, pr.ave = fluxes4$Pr.ave)
 
-parms <- c("b.0", "b.1", "b.2", "sig.flux","w.rep")
+parms <- c("b.0", "b.1", "b.2", "b.3", "sig.flux","w.rep")
 
 flux.mod <- jags.model(file = "C:\\Users\\Ana\\Documents\\GitHub\\flux_data\\fluxes_model_code.r", 
                        data = datalist, n.adapt=10000, n.chains = 3)
@@ -155,11 +175,11 @@ flux.mod <- jags.model(file = "C:\\Users\\Ana\\Documents\\GitHub\\flux_data\\flu
 
 flux.coda <- coda.samples(flux.mod, variable.names = parms, n.iter=10000, thin =1)
 
-mcmcplot(flux.coda, parms = c("b.0", "b.1", "sig.flux"), 
-         dir = "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run2\\history" )
+mcmcplot(flux.coda, parms = c("b.0", "b.1", "b.2", "b.3", "sig.flux"), 
+         dir = "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run5\\history" )
 
 mod.out <- summary(flux.coda)
-write.table(mod.out$statistics, "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run2\\mod_stats.csv",
+write.table(mod.out$statistics, "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run5\\mod_stats.csv",
             sep=",")
-write.table(mod.out$quantiles, "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run2\\mod_quantile.csv",
+write.table(mod.out$quantiles, "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run\\mod_quantile.csv",
             sep=",")
