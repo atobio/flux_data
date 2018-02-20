@@ -12,6 +12,7 @@ for(i in 1:Nobs){
 for(j in 1:Nstand){
   b.0[j] ~ dnorm(0,0.001)
   b.1[j] ~ dnorm(0,0.001)
+  b.2[j] ~ dnorm(0,0.001)  
 }
 
 tau.flux <- pow(sig.flux,-2)
