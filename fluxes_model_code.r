@@ -5,7 +5,7 @@ model{
 for(i in 1:Nobs){
   # calculate mean for standDay
   w.flux[i] ~ dnorm(mu.flux[i], tau.flux)
-  mu.flux[i] <- b.0[densityID[i]] + b.1[densityID[i]] * log(VPD[i]) + b.2[densityID[i]] * pr.ave[i] + b.3[densityID[i]] * par[i] 
+  mu.flux[i] <- b.0[densityID[i]] + b.1[densityID[i]] * log(vpd[i]) 
 }
   
   
@@ -14,9 +14,9 @@ for(i in 1:Nobs){
 #assign priors
 for(j in 1:Ndensity){
   b.0[j] ~ dnorm(0,0.001)
-  b.1[j] ~ dnorm(0,0.001)
-  b.2[j] ~ dnorm(0,0.001) 
-  b.3[j] ~ dnorm(0,0.001) 
+
+  b.1[j] ~ dnorm(0,0.001) 
+ 
 }
 
 

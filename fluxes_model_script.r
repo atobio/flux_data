@@ -65,9 +65,9 @@ datHmet$standID <- rep(1, dim(datHmet)[1])
 #first convert dates
 dateDAV <- as.Date(datDAV[,1], "%m/%d/%Y %H:%M") 
 datDAVmet <- data.frame(doy=yday(dateDAV), year=year(dateDAV), hour=datDAV$hour, RH=datDAV$VP.3.Humidity.Temp,Temp=datDAV$VP.3.Humidity.Temp.1, standID=rep(1, dim(datDAV)[1]))
-dateHDF1 <- as.Date(datHDF1[,1], "%m/%d/%Y %H:%M") 
-datHDF1met <- data.frame(doy=yday(dateHDF1), year=year(dateHDF1), hour=datHDF1$hour, RH=datHDF1$VP.3.Humidity.Temp,Temp=datHDF1$VP.3.Humidity.Temp.1, standID=rep(2, dim(datHDF1)[1]))
-
+dateHDF1 <- as.Date(datHDF1[,1], "%m/%d/%Y %H:ear=year(dateHDF1), hour=datHDF1$hour, RH=datHDF1$VP.3.Humidity.Temp,Temp=datHDF1$VP.3.Humidity.Temp.1, standID=rep(2, dim(datHDF1)[1]))
+%M") 
+datHDF1met <- data.frame(doy=yday(dateHDF1), y
 ##### gap filling end of august with HDF1
 dav.gap <- datHDF1met[datHDF1met$doy >= 235 & datHDF1met$year == 2015, 1:5]
 dav.gap$standID <- rep(1,dim(dav.gap)[1])
@@ -133,41 +133,61 @@ fluxes3 <- join(fluxes2, datMet, by=c("doy","year","hourR","standID"), type="lef
 
 fluxes4 <- join(fluxes3, datAirP, by=c("doy","year"), type="left")
 
+fluxes5 <- fluxes4[fluxes4$umol.h2o.m2.sec.1 <  quantile(fluxes4$umol.h2o.m2.sec.1, prob=.9),]
+
+standDay <- unique(data.frame(doy=fluxes5$doy, year=fluxes5$year, standID =fluxes5$standID, densityID = fluxes5$densityID))
+standDay$standDay <- seq(1,dim(standDay)[1])
+
+fluxes6 <- join(fluxes5, standDay, by =c("doy", "year", "standID", "densityID"), type = "left")
+vpd.sd <- aggregate(fluxes6$VPD, by = list(fluxes6$standDay), FUN="mean")
+par.sd <- aggregate(fluxes6$par, by = list(fluxes6$standDay), FUN="mean")
+
+
+standDay$vpd <- vpd.sd$x
+standDay$par <- par.sd$x
+
+standDay <- join(standDay, datAirP, by = c("doy", "year"), type = "left")
+
+flux.sd <- aggregate(fluxes6$umol.h2o.m2.sec.1, by = list(fluxes6$standDay), FUN="mean")
+flux.std <- aggregate(fluxes6$umol.h2o.m2.sec.1, by = list(fluxes6$standDay), FUN="sd")
+
+standDay$flux <- flux.sd$x
+standDay$flux.std <- flux.std$x
 
 #################################################
 #################plots!!#########################
 #################################################
 
-plot(log(fluxes4$VPD), fluxes4$umol.h2o.m2.sec.1)
+cp <- ifelse(standDay$densityID == 1, "darkgreen",
+             ifelse(standDay$densityID == 2, "tomato3",
+                    "royalblue3"))
 
-cp <- rainbow(5)
-fluxes4$vpdcol <- ifelse(fluxes4$VPD <= 0.25, cp[1], 
-                         ifelse(fluxes4$VPD > 0.25 & fluxes4$VPD <= 0.5, cp[2],
-                                ifelse(fluxes4$VPD > 0.5 & fluxes4$VPD <= 0.75, cp[3],
-                                       ifelse(fluxes4$VPD > 0.75 & fluxes4$VPD <= 1.5, cp[4],
-                                             cp[5]))))
-plot(fluxes4$Pr.ave, fluxes4$umol.h2o.m2.sec.1, pch=19, col=fluxes4$vpdcol)
-legend(15, 8500, c(".25",".5",".75","1.5","3"), col=cp, pch = 19)
+plot(log(standDay$vpd), standDay$flux, col = cp, pch=19)
+lf <- lm(standDay$flux[standDay$densityID == 1] ~ standDay$vpd[standDay$densityID == 1])
+summary(lf)
 
 
-scatter3D(log(fluxes4$VPD), fluxes4$Pr.ave, fluxes4$umol.h2o.m2.sec.1)
+plot(standDay$Pr.ave, standDay$flux, pch=19, col=cp)
 
-plot(fluxes4$hour, fluxes4$umol.h2o.m2.sec.1,pch=19, col=fluxes4$vpdcol)
-legend(15, 8500, c(".25",".5",".75","1.5","3"), col=cp, pch = 19)
-plot(fluxes4$par, fluxes4$umol.h2o.m2.sec.1, pch=19, col=fluxes4$vpdcol)
-legend(15, 8500, c(".25",".5",".75","1.5","3"), col=cp, pch = 19)
 
-plot(fluxes4$hour, fluxes4$par)
+scatter3D(log(standDay$vpd), standDay$Pr.ave, standDay$flux)
+
+
+plot(log(standDay$vpd), standDay$par)
+cor(log(standDay$vpd), standDay$par)
+
+plot(standDay$par, standDay$flux, col=cp, pch=19)
+
 
 #############################################
 #####set up model run          ##############
 #############################################
 
 
-datalist <- list(Nobs=dim(fluxes4)[1], w.flux = fluxes4$umol.h2o.m2.sec.1, VPD = fluxes4$VPD, par = fluxes4$par,
-                 densityID = fluxes4$densityID, Ndensity=3, pr.ave = fluxes4$Pr.ave)
+datalist <- list(Nobs=dim(standDay)[1], w.flux = standDay$flux, 
+                 densityID = standDay$densityID, Ndensity=3, vpd = standDay$vpd)
 
-parms <- c("b.0", "b.1", "b.2", "b.3", "sig.flux","w.rep")
+parms <- c("b.0", "b.1", "sig.flux","w.rep")
 
 flux.mod <- jags.model(file = "C:\\Users\\Ana\\Documents\\GitHub\\flux_data\\fluxes_model_code.r", 
                        data = datalist, n.adapt=10000, n.chains = 3)
@@ -176,16 +196,27 @@ flux.mod <- jags.model(file = "C:\\Users\\Ana\\Documents\\GitHub\\flux_data\\flu
 flux.coda <- coda.samples(flux.mod, variable.names = parms, n.iter=10000, thin =1)
 
 mcmcplot(flux.coda, parms = c("b.0", "b.1", "b.2", "b.3", "sig.flux"), 
-         dir = "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run5\\history" )
+         dir = "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run10\\history" )
 
 mod.out <- summary(flux.coda)
-write.table(mod.out$statistics, "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run5\\mod_stats.csv",
+write.table(mod.out$statistics, "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run10\\mod_stats.csv",
             sep=",")
-write.table(mod.out$quantiles, "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run5\\mod_quantile.csv",
+write.table(mod.out$quantiles, "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run10\\mod_quantile.csv",
             sep=",")
 
 
+fluxMean <- aggregate(fluxes6$umol.h2o.m2.sec.1, by = list(fluxes6$standDay), FUN = "mean")
+
+plot(fluxMean$x, data.matrix(mod.out$statistics[13:(83+12),1]))
 
 ## look at when precip is low - vpd vs et 
 ## convert ummol per second to liters per hour 
 ## model with mean across plots - variation across plots causing noise 
+
+
+
+## exclude fluxes over 6000ummol
+## pet to see if values over 6000 are real?!
+## model in 2 steps - run model with fluxes below 6000
+## 
+
