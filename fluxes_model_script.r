@@ -181,5 +181,11 @@ mcmcplot(flux.coda, parms = c("b.0", "b.1", "b.2", "b.3", "sig.flux"),
 mod.out <- summary(flux.coda)
 write.table(mod.out$statistics, "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run5\\mod_stats.csv",
             sep=",")
-write.table(mod.out$quantiles, "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run\\mod_quantile.csv",
+write.table(mod.out$quantiles, "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run5\\mod_quantile.csv",
             sep=",")
+
+
+
+## look at when precip is low - vpd vs et 
+## convert ummol per second to liters per hour 
+## model with mean across plots - variation across plots causing noise 
