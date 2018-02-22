@@ -163,7 +163,11 @@ cp <- ifelse(standDay$densityID == 1, "darkgreen",
                     "royalblue3"))
 
 plot(log(standDay$vpd), standDay$flux, col = cp, pch=19)
-lf <- lm(standDay$flux[standDay$densityID == 1] ~ standDay$vpd[standDay$densityID == 1])
+hf <- lm(standDay$flux[standDay$densityID == 1] ~ standDay$vpd[standDay$densityID == 1])
+summary(hf)
+mf <- lm(standDay$flux[standDay$densityID == 2] ~ standDay$vpd[standDay$densityID == 2])
+summary(mf)
+lf <- lm(standDay$flux[standDay$densityID == 3] ~ standDay$vpd[standDay$densityID == 3])
 summary(lf)
 
 
@@ -195,13 +199,13 @@ flux.mod <- jags.model(file = "C:\\Users\\Ana\\Documents\\GitHub\\flux_data\\flu
 
 flux.coda <- coda.samples(flux.mod, variable.names = parms, n.iter=10000, thin =1)
 
-mcmcplot(flux.coda, parms = c("b.0", "b.1", "b.2", "b.3", "sig.flux"), 
-         dir = "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run10\\history" )
+mcmcplot(flux.coda, parms = c("b.0", "b.1", "b.2", "b.3", "sig.flux", "mu.flux"), 
+         dir = "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run13\\history" )
 
 mod.out <- summary(flux.coda)
-write.table(mod.out$statistics, "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run10\\mod_stats.csv",
+write.table(mod.out$statistics, "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run13\\mod_stats.csv",
             sep=",")
-write.table(mod.out$quantiles, "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run10\\mod_quantile.csv",
+write.table(mod.out$quantiles, "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run13\\mod_quantile.csv",
             sep=",")
 
 
