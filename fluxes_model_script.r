@@ -65,9 +65,8 @@ datHmet$standID <- rep(1, dim(datHmet)[1])
 #first convert dates
 dateDAV <- as.Date(datDAV[,1], "%m/%d/%Y %H:%M") 
 datDAVmet <- data.frame(doy=yday(dateDAV), year=year(dateDAV), hour=datDAV$hour, RH=datDAV$VP.3.Humidity.Temp,Temp=datDAV$VP.3.Humidity.Temp.1, standID=rep(1, dim(datDAV)[1]))
-dateHDF1 <- as.Date(datHDF1[,1], "%m/%d/%Y %H:ear=year(dateHDF1), hour=datHDF1$hour, RH=datHDF1$VP.3.Humidity.Temp,Temp=datHDF1$VP.3.Humidity.Temp.1, standID=rep(2, dim(datHDF1)[1]))
-%M") 
-datHDF1met <- data.frame(doy=yday(dateHDF1), y
+dateHDF1 <- as.Date(datHDF1[,1], "%m/%d/%Y %H:%M") 
+datHDF1met <- data.frame(doy=yday(dateHDF1), year=year(dateHDF1), hour=datHDF1$hour, RH=datHDF1$VP.3.Humidity.Temp,Temp=datHDF1$VP.3.Humidity.Temp.1, standID=rep(2, dim(datHDF1)[1]))
 ##### gap filling end of august with HDF1
 dav.gap <- datHDF1met[datHDF1met$doy >= 235 & datHDF1met$year == 2015, 1:5]
 dav.gap$standID <- rep(1,dim(dav.gap)[1])
@@ -188,10 +187,10 @@ plot(standDay$par, standDay$flux, col=cp, pch=19)
 #############################################
 
 
-datalist <- list(Nobs=dim(standDay)[1], w.flux = standDay$flux, 
-                 densityID = standDay$densityID, Ndensity=3, vpd = standDay$vpd)
+datalist <- list(Nobs=dim(fluxes5)[1], w.flux = fluxes5$umol.h2o.m2.sec.1, densityID = fluxes5$densityID, Ndensity=3, 
+                 pr.ave = fluxes5$Pr.ave, par = fluxes5$par, vpd = fluxes5$VPD)
 
-parms <- c("b.0", "b.1", "sig.flux","w.rep")
+parms <- c("b.0", "b.1", "b.2", "b.3" "sig.flux","w.rep")
 
 flux.mod <- jags.model(file = "C:\\Users\\Ana\\Documents\\GitHub\\flux_data\\fluxes_model_code.r", 
                        data = datalist, n.adapt=10000, n.chains = 3)
@@ -200,12 +199,12 @@ flux.mod <- jags.model(file = "C:\\Users\\Ana\\Documents\\GitHub\\flux_data\\flu
 flux.coda <- coda.samples(flux.mod, variable.names = parms, n.iter=10000, thin =1)
 
 mcmcplot(flux.coda, parms = c("b.0", "b.1", "b.2", "b.3", "sig.flux", "mu.flux"), 
-         dir = "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run13\\history" )
+         dir = "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run4\\history" )
 
 mod.out <- summary(flux.coda)
-write.table(mod.out$statistics, "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run13\\mod_stats.csv",
+write.table(mod.out$statistics, "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run4\\mod_stats.csv",
             sep=",")
-write.table(mod.out$quantiles, "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run13\\mod_quantile.csv",
+write.table(mod.out$quantiles, "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run4\\mod_quantile.csv",
             sep=",")
 
 
