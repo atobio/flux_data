@@ -13,9 +13,9 @@ for(i in 1:Nobs){
   
 #assign priors
 for(j in 1:Ndensity){
-  b.0[j] ~ dnorm(0,0.1)
+  b.0[j] ~ dnorm(0,0.00000001)
 
-  b.1[j] ~ dnorm(0,0.1)
+  b.1[j] ~ dnorm(0,0.00000001)
   
   tau.flux[j] <- pow(sig.flux[j], -2)
   
