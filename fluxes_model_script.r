@@ -11,9 +11,9 @@ library(rjags)
 library(coda)
 library(mcmcplots)
 library(lubridate)
-library(plot3D)
+#library(plot3D)
 library(rgl)
-library(scatterplot3d)
+#library(scatterplot3d)
 #set directory
 #setwd("/Users/Ana/Documents/siberia_data/dg_fluxes")
 #read in data
@@ -132,7 +132,7 @@ fluxes3 <- join(fluxes2, datMet, by=c("doy","year","hourR","standID"), type="lef
 
 fluxes4 <- join(fluxes3, datAirP, by=c("doy","year"), type="left")
 
-fluxes5 <- fluxes4[fluxes4$umol.h2o.m2.sec.1 <  quantile(fluxes4$umol.h2o.m2.sec.1, prob=.9),]
+fluxes5 <- fluxes4[fluxes4$umol.h2o.m2.sec.1 <= quantile(fluxes4$umol.h2o.m2.sec.1, .95),]
 
 standDay <- unique(data.frame(doy=fluxes5$doy, year=fluxes5$year, standID =fluxes5$standID, densityID = fluxes5$densityID))
 standDay$standDay <- seq(1,dim(standDay)[1])
@@ -161,7 +161,7 @@ cp <- ifelse(standDay$densityID == 1, "darkgreen",
              ifelse(standDay$densityID == 2, "tomato3",
                     "royalblue3"))
 
-plot(log(standDay$vpd), standDay$flux, col = cp, pch=19)
+plot((standDay$vpd), standDay$flux, col = cp, pch=19)
 hf <- lm(standDay$flux[standDay$densityID == 1] ~ standDay$vpd[standDay$densityID == 1])
 summary(hf)
 mf <- lm(standDay$flux[standDay$densityID == 2] ~ standDay$vpd[standDay$densityID == 2])
@@ -170,7 +170,7 @@ lf <- lm(standDay$flux[standDay$densityID == 3] ~ standDay$vpd[standDay$densityI
 summary(lf)
 
 
-plot(standDay$Pr.ave, standDay$flux, pch=19, col=cp)
+plot(standDay$par, standDay$flux, pch=19, col=cp)
 
 
 scatter3D(log(standDay$vpd), standDay$Pr.ave, standDay$flux)
@@ -187,10 +187,10 @@ plot(standDay$par, standDay$flux, col=cp, pch=19)
 #############################################
 
 
-datalist <- list(Nobs=dim(fluxes5)[1], w.flux = fluxes5$umol.h2o.m2.sec.1, densityID = fluxes5$densityID, Ndensity=3, 
-                 pr.ave = fluxes5$Pr.ave, par = fluxes5$par, vpd = fluxes5$VPD)
+datalist <- list(Nobs=dim(standDay)[1], w.flux = standDay$flux, densityID = standDay$densityID, Ndensity=3, 
+                 vpd = standDay$vpd)
 
-parms <- c("b.0", "b.1", "b.2", "b.3" "sig.flux","w.rep")
+parms <- c("b.0", "b.1", "sig.flux","w.rep")
 
 flux.mod <- jags.model(file = "C:\\Users\\Ana\\Documents\\GitHub\\flux_data\\fluxes_model_code.r", 
                        data = datalist, n.adapt=10000, n.chains = 3)
@@ -198,28 +198,32 @@ flux.mod <- jags.model(file = "C:\\Users\\Ana\\Documents\\GitHub\\flux_data\\flu
 
 flux.coda <- coda.samples(flux.mod, variable.names = parms, n.iter=10000, thin =1)
 
-mcmcplot(flux.coda, parms = c("b.0", "b.1", "b.2", "b.3", "sig.flux", "mu.flux"), 
-         dir = "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run4\\history" )
+mcmcplot(flux.coda, parms = c("b.0", "b.1", "sig.flux", "mu.flux"), 
+         dir = "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run6\\history" )
 
 mod.out <- summary(flux.coda)
-write.table(mod.out$statistics, "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run4\\mod_stats.csv",
+write.table(mod.out$statistics, "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run6\\mod_stats.csv",
             sep=",")
-write.table(mod.out$quantiles, "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run4\\mod_quantile.csv",
+write.table(mod.out$quantiles, "C:\\Users\\Ana\\Documents\\siberia_data\\model_output\\run6\\mod_quantile.csv",
             sep=",")
 
+
+gexp <- "\\[*[[:digit:]]*\\]"
+rep.dat <- data.frame(mod.out$statistics[gsub(gexp,"", rownames(mod.out$statistics)) == "w.rep",])
+
+
+plot(standDay$flux, rep.dat$Mean, xlim=c(0,2600), ylim=c(0,2600))
+fit1 <- lm(rep.dat$Mean ~ standDay$flux)
+summary(fit1)
+abline(0,1, lwd=2, col="red")
+abline(fit1, lwd=2, lty=3)
 
 fluxMean <- aggregate(fluxes6$umol.h2o.m2.sec.1, by = list(fluxes6$standDay), FUN = "mean")
 
 plot(fluxMean$x, data.matrix(mod.out$statistics[13:(83+12),1]))
 
-## look at when precip is low - vpd vs et 
-## convert ummol per second to liters per hour 
-## model with mean across plots - variation across plots causing noise 
 
-
-
-## exclude fluxes over 6000ummol
-## pet to see if values over 6000 are real?!
-## model in 2 steps - run model with fluxes below 6000
-## 
+## par relationship?
+## compare et to pet - to see if values over 6000 are real?!
+## plots of et to pet - against vpd 
 
