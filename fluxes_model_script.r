@@ -32,6 +32,11 @@ datLDF2 <- read.csv("z:\\student_research\\tobio\\viperSensor\\met\\LDF2.csv")
 datMDF1 <- read.csv("z:\\student_research\\tobio\\viperSensor\\met\\MDF1.csv")
 datMDF2 <- read.csv("z:\\student_research\\tobio\\viperSensor\\met\\MDF2.csv")
 
+#read in net radiation data
+netR <- read.csv("z:\\student_research\\tobio\\viperSensor\\Campbell\\netR.csv")
+#read in PAR data to match net radiation
+PARd <- read.csv("z:\\student_research\\tobio\\viperSensor\\decagon\\met\\PAR.QSOS Par.csv")
+
 #############################################
 #####organize fluxes data      ##############
 #############################################
@@ -112,6 +117,36 @@ for(i in 5:dim(datAirP)[1]){
 }
 
 datAirP$Pr.ave <- pre.v
+#################################################
+##############solar radiation####################
+#################################################
+## par relationship?
+## compare et to pet - to see if values over 6000 are real?!
+## plots of et to pet - against vpd 
+#pull out PAR from low density 
+#since relationship will be least affected by differences in shading of the two sensors
+
+
+PARlow <- data.frame(PARd[PARd$site=="ld",1:4])
+
+#pull out understory netR
+
+nRlow <- netR[netR$site=="ld"&netR$loc=="understory",]
+
+#join the two together
+
+radLow <- join(PARlow,nRlow, by=c("doy","year","hour"), type="inner")
+
+
+#radiation relationship
+plot(radLow$PAR.QSOS.Par,radLow$SR01Up_Avg)
+fitRLow <- lm(radLow$SR01Up_Avg~radLow$PAR.QSOS.Par)
+summary(fitRLow)
+radLow$predR <- summary(fitRLow)$coefficients[1,1]+(summary(fitRLow)$coefficients[2,1]*radLow$PAR.QSOS.Par)
+plot(radLow$SR01Up_Avg,radLow$predR)
+predRLow <- lm(radLow$predR~radLow$SR01Up_Avg)
+summary(predRLow)
+
 
 
 
@@ -223,7 +258,4 @@ fluxMean <- aggregate(fluxes6$umol.h2o.m2.sec.1, by = list(fluxes6$standDay), FU
 plot(fluxMean$x, data.matrix(mod.out$statistics[13:(83+12),1]))
 
 
-## par relationship?
-## compare et to pet - to see if values over 6000 are real?!
-## plots of et to pet - against vpd 
-
+ 
